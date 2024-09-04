@@ -1,0 +1,2 @@
+-- Loadstring to load and execute the script from GitHub
+loadstring(game:HttpGet('https://raw.githubusercontent.com/vlctyy/OceanicBETA/main/oceanic.lua'))()
