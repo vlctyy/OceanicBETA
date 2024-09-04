@@ -1,25 +1,25 @@
--- Updated Rayfield UI Setup
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- Rayfield UI Setup
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))() -- Updated Rayfield link
 local Window = Rayfield:CreateWindow({
     Name = "Oceanic Beta",
     LoadingTitle = "Loading Oceanic...",
     LoadingSubtitle = "Please wait while the features are loaded...",
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "OceanicSettings", -- Folder to save the config file
-        FileName = "Oceanic_Config" -- Config file name
+        FolderName = "OceanicSettings",
+        FileName = "Oceanic_Config"
     },
     Discord = {
         Enabled = false,
-        Invite = "https://www.youtube.com/@RontuYT", -- Link to your YouTube channel
+        Invite = "YourInviteCodeHere",
         RememberJoins = false
     },
     KeySystem = false
 })
 
--- Efficient Function Definitions
+-- Helper Functions
 local function toggleDebugFlag()
-    local fflags = game:GetService("ReplicatedStorage"):WaitForChild("FFlags", 3) -- Timeout to prevent infinite wait
+    local fflags = game:GetService("ReplicatedStorage"):WaitForChild("FFlags", 3)
     if not fflags then return end
 
     local flagValue = fflags:FindFirstChild("DebugGreySky")
@@ -30,7 +30,7 @@ local function toggleDebugFlag()
             Content = "FFlagDebugGreySky toggled to: " .. tostring(flagValue.Value),
             Duration = 3
         })
-        Window:SetConfigurationValue("DebugGreySky", flagValue.Value) -- Save the flag state
+        Window:SetConfigurationValue("DebugGreySky", flagValue.Value)
     else
         Rayfield:Notify({
             Title = "Error",
@@ -45,7 +45,6 @@ local function unlockFPS()
     local RenderSettings = UserSettings():GetService("RenderSettings")
     if not RenderSettings then return end
 
-    -- Set FPS to uncapped if possible
     RenderSettings.FrameRateManagerMode = Enum.FrameRateManagerMode.Uncapped
     Rayfield:Notify({
         Title = "FPS Unlocker",
@@ -53,33 +52,77 @@ local function unlockFPS()
         Duration = 3
     })
 
-    Window:SetConfigurationValue("FPSUnlockerEnabled", true) -- Save the FPS unlocker state
+    Window:SetConfigurationValue("FPSUnlockerEnabled", true)
+end
+
+local function createDraggableViewer(name, initialText)
+    local viewer = Instance.new("TextLabel")
+    viewer.Size = UDim2.new(0, 100, 0, 50)
+    viewer.Position = UDim2.new(0.5, 0, 0.1, 0)
+    viewer.Text = initialText
+    viewer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    viewer.TextColor3 = Color3.fromRGB(255, 255, 255)
+    viewer.TextSize = 14
+    viewer.BorderSizePixel = 2
+    viewer.BorderColor3 = Color3.fromRGB(0, 170, 255)
+    viewer.Parent = game.Players.LocalPlayer.PlayerGui
+
+    local dragging, dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        viewer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    viewer.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = viewer.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    viewer.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
+    return viewer
 end
 
 local function displayFPS()
+    local fpsViewer = createDraggableViewer("FPS Viewer", "FPS: Calculating...")
     local RunService = game:GetService("RunService")
     local lastFrameTime = tick()
     local frameCount = 0
-    local fps = 0
 
-    -- Connect to RenderStepped with minimal processing
     RunService.RenderStepped:Connect(function()
         frameCount = frameCount + 1
         local currentTime = tick()
-        if currentTime - lastFrameTime >= 2 then -- Update FPS every 2 seconds to reduce frequency
-            fps = frameCount / 2 -- Average FPS over 2 seconds
+        if currentTime - lastFrameTime >= 1 then
+            local fps = frameCount / (currentTime - lastFrameTime)
+            fpsViewer.Text = "FPS: " .. math.floor(fps)
             frameCount = 0
             lastFrameTime = currentTime
-            Rayfield:Notify({
-                Title = "FPS Viewer",
-                Content = "Current FPS: " .. tostring(fps),
-                Duration = 2
-            })
         end
     end)
 end
 
 local function displayPing()
+    local pingViewer = createDraggableViewer("Ping Viewer", "Ping: Calculating...")
     local Stats = game:GetService("Stats")
     local NetworkStats = Stats:FindFirstChild("Network")
 
@@ -96,11 +139,7 @@ local function displayPing()
     if IncomingReplicationLag then
         IncomingReplicationLag:GetPropertyChangedSignal("Value"):Connect(function()
             local ping = math.floor(IncomingReplicationLag.Value * 1000)
-            Rayfield:Notify({
-                Title = "Ping Viewer",
-                Content = "Current Ping: " .. tostring(ping) .. " ms",
-                Duration = 2
-            })
+            pingViewer.Text = "Ping: " .. tostring(ping) .. " ms"
         end)
     end
 end
@@ -113,7 +152,7 @@ local function modifyTextures(action)
             elseif action == "blur" then
                 v.Texture = "rbxassetid://blur_texture_id" -- Replace with blurred texture ID
             elseif action == "reset" then
-                v.Texture = v:GetAttribute("OriginalTexture") or v.Texture -- Resets to the original texture
+                v.Texture = v:GetAttribute("OriginalTexture") or v.Texture
             end
         end
     end
@@ -122,34 +161,30 @@ local function modifyTextures(action)
         Content = "Textures have been " .. action .. "d.",
         Duration = 3
     })
-    Window:SetConfigurationValue("TextureModification", action) -- Save the texture modification state
+    Window:SetConfigurationValue("TextureModification", action)
 end
 
--- Save original textures
 for _, v in ipairs(game:GetDescendants()) do
     if v:IsA("Texture") or v:IsA("Decal") then
-        v:SetAttribute("OriginalTexture", v.Texture) -- Store the original texture
+        v:SetAttribute("OriginalTexture", v.Texture)
     end
 end
 
--- Load custom font logic
 local function applyCustomFont(fontName)
-    if fontName == "pixeled" then
-        local pixeledFont = "rbxassetid://your_pixelfont_asset_id" -- Replace with actual asset ID
-        for _, v in ipairs(game:GetDescendants()) do
-            if v:IsA("TextLabel") or v:IsA("TextButton") then
-                v.Font = pixeledFont
-            end
+    local fontId = "rbxassetid://123456789" -- Replace with the actual asset ID of the custom font
+    for _, v in ipairs(game:GetService("Players").LocalPlayer.PlayerGui:GetDescendants()) do
+        if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
+            v.Font = Enum.Font.SourceSans
+            v.Text = "[Custom Font] " .. v.Text -- Example usage
         end
-        Rayfield:Notify({
-            Title = "Custom Font Applied",
-            Content = "Custom font 'pixeled' applied to UI elements.",
-            Duration = 3
-        })
     end
+    Rayfield:Notify({
+        Title = "Custom Font Applied",
+        Content = "Applied font: " .. fontName,
+        Duration = 3
+    })
 end
 
--- Load saved settings
 local function loadSettings()
     local savedDebugFlag = Window:GetConfigurationValue("DebugGreySky")
     local fpsUnlockerEnabled = Window:GetConfigurationValue("FPSUnlockerEnabled")
@@ -157,75 +192,82 @@ local function loadSettings()
     local savedCustomFont = Window:GetConfigurationValue("CustomFont")
 
     if savedDebugFlag ~= nil then
-        toggleDebugFlag(savedDebugFlag) -- Apply saved debug flag state
+        toggleDebugFlag()
     end
 
     if fpsUnlockerEnabled then
-        unlockFPS() -- Apply saved FPS unlocker state
+        unlockFPS()
     end
 
     if savedTextureModification ~= nil then
-        modifyTextures(savedTextureModification) -- Apply saved texture modification state
+        modifyTextures(savedTextureModification)
     end
 
     if savedCustomFont ~= nil then
-        applyCustomFont(savedCustomFont) -- Apply saved custom font state
+        applyCustomFont(savedCustomFont)
     end
 end
 
--- UI Elements
-local Tab = Window:CreateTab("Main", 4483362458)
-
-Tab:CreateButton({
-    Name = "Toggle FFlagDebugGreySky",
-    Callback = function()
-        toggleDebugFlag()
-    end
+-- Initialize Tabs and Options
+local MainTab = Window:CreateTab("Main Features", 4483362458)
+MainTab:CreateButton({
+    Name = "Toggle Debug Flag",
+    Callback = toggleDebugFlag
 })
 
-Tab:CreateButton({
-    Name = "Enable FPS Unlocker",
-    Callback = function()
-        unlockFPS()
-    end
+MainTab:CreateButton({
+    Name = "Unlock FPS",
+    Callback = unlockFPS
 })
 
-Tab:CreateButton({
-    Name = "Display FPS Viewer",
-    Callback = function()
-        displayFPS()
-    end
+MainTab:CreateButton({
+    Name = "Display FPS",
+    Callback = displayFPS
 })
 
-Tab:CreateButton({
-    Name = "Display Ping Viewer",
-    Callback = function()
-        displayPing()
-    end
+MainTab:CreateButton({
+    Name = "Display Ping",
+    Callback = displayPing
 })
 
-Tab:CreateDropdown({
+MainTab:CreateDropdown({
     Name = "Texture Modification",
     Options = {"remove", "blur", "reset"},
-    Callback = function(selected)
-        modifyTextures(selected)
+    Callback = modifyTextures
+})
+
+MainTab:CreateButton({
+    Name = "Apply Custom Font",
+    Callback = function()
+        applyCustomFont("pixeled")
     end
 })
 
-Tab:CreateDropdown({
-    Name = "Custom Font",
-    Options = {"pixeled"}, -- Add more font options if available
-    Callback = function(selected)
-        applyCustomFont(selected)
+-- Settings Tab
+local SettingsTab = Window:CreateTab("Settings", 4483362458)
+SettingsTab:CreateButton({
+    Name = "Load Saved Settings",
+    Callback = loadSettings
+})
+
+SettingsTab:CreateButton({
+    Name = "Save Current Settings",
+    Callback = function()
+        Window:SaveConfiguration()
+        Rayfield:Notify({
+            Title = "Settings Saved",
+            Content = "Your current settings have been saved.",
+            Duration = 3
+        })
     end
 })
 
--- Load the saved settings when the script starts
-loadSettings()
-
--- Notify when Oceanic Beta is successfully loaded
+-- Initialization
 Rayfield:Notify({
-    Title = "Oceanic Beta",
-    Content = "Oceanic Beta loaded successfully!",
+    Title = "Oceanic Beta Loaded",
+    Content = "Welcome! Enjoy the new features and UI.",
     Duration = 5
 })
+
+-- Auto-load saved settings on startup
+loadSettings()
