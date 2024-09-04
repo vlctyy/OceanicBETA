@@ -1,5 +1,5 @@
--- Rayfield UI Setup
-local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+-- Updated Rayfield UI Setup
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
     Name = "Oceanic Beta",
     LoadingTitle = "Loading Oceanic...",
@@ -11,7 +11,7 @@ local Window = Rayfield:CreateWindow({
     },
     Discord = {
         Enabled = false,
-        Invite = "YourInviteCodeHere",
+        Invite = "https://www.youtube.com/@RontuYT", -- Link to your YouTube channel
         RememberJoins = false
     },
     KeySystem = false
@@ -108,7 +108,7 @@ end
 local function modifyTextures(action)
     for _, v in ipairs(game:GetDescendants()) do
         if v:IsA("Texture") or v:IsA("Decal") then
-            if action == "No Textures" then
+            if action == "remove" then
                 v.Texture = ""  -- Removes the texture
             elseif action == "blur" then
                 v.Texture = "rbxassetid://blur_texture_id" -- Replace with blurred texture ID
@@ -132,26 +132,21 @@ for _, v in ipairs(game:GetDescendants()) do
     end
 end
 
-local function applyCustomFont()
-    local fontPath = "rbxassetid://pixeled" -- Replace with the correct asset ID for the font file
-    local players = game:GetService("Players")
-    local function setCustomFont(uiElement)
-        if uiElement:IsA("TextLabel") or uiElement:IsA("TextButton") or uiElement:IsA("TextBox") then
-            uiElement.Font = fontPath
+-- Load custom font logic
+local function applyCustomFont(fontName)
+    if fontName == "pixeled" then
+        local pixeledFont = "rbxassetid://your_pixelfont_asset_id" -- Replace with actual asset ID
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("TextLabel") or v:IsA("TextButton") then
+                v.Font = pixeledFont
+            end
         end
+        Rayfield:Notify({
+            Title = "Custom Font Applied",
+            Content = "Custom font 'pixeled' applied to UI elements.",
+            Duration = 3
+        })
     end
-
-    for _, player in ipairs(players:GetPlayers()) do
-        for _, element in ipairs(player.PlayerGui:GetDescendants()) do
-            setCustomFont(element)
-        end
-    end
-
-    players.PlayerAdded:Connect(function(player)
-        player.PlayerGui.DescendantAdded:Connect(function(element)
-            setCustomFont(element)
-        end)
-    end)
 end
 
 -- Load saved settings
@@ -159,6 +154,7 @@ local function loadSettings()
     local savedDebugFlag = Window:GetConfigurationValue("DebugGreySky")
     local fpsUnlockerEnabled = Window:GetConfigurationValue("FPSUnlockerEnabled")
     local savedTextureModification = Window:GetConfigurationValue("TextureModification")
+    local savedCustomFont = Window:GetConfigurationValue("CustomFont")
 
     if savedDebugFlag ~= nil then
         toggleDebugFlag(savedDebugFlag) -- Apply saved debug flag state
@@ -170,6 +166,10 @@ local function loadSettings()
 
     if savedTextureModification ~= nil then
         modifyTextures(savedTextureModification) -- Apply saved texture modification state
+    end
+
+    if savedCustomFont ~= nil then
+        applyCustomFont(savedCustomFont) -- Apply saved custom font state
     end
 end
 
@@ -206,39 +206,17 @@ Tab:CreateButton({
 
 Tab:CreateDropdown({
     Name = "Texture Modification",
-    Options = {"No Textures", "blur", "reset"},
+    Options = {"remove", "blur", "reset"},
     Callback = function(selected)
         modifyTextures(selected)
     end
 })
 
--- Add the YouTube channel button
-Tab:CreateButton({
-    Name = "Visit My YouTube Channel",
-    Callback = function()
-        local success, err = pcall(function()
-            game:GetService("GuiService"):OpenBrowserWindow("https://www.youtube.com/@RontuYT")
-        end)
-
-        if not success then
-            Rayfield:Notify({
-                Title = "Error",
-                Content = "Failed to open the link. Please try again later.",
-                Duration = 3
-            })
-        end
-    end
-})
-
-Tab:CreateButton({
-    Name = "Apply Custom Font",
-    Callback = function()
-        applyCustomFont()
-        Rayfield:Notify({
-            Title = "Custom Font",
-            Content = "Custom font has been applied!",
-            Duration = 3
-        })
+Tab:CreateDropdown({
+    Name = "Custom Font",
+    Options = {"pixeled"}, -- Add more font options if available
+    Callback = function(selected)
+        applyCustomFont(selected)
     end
 })
 
