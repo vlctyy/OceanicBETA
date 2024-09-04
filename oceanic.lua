@@ -108,7 +108,7 @@ end
 local function modifyTextures(action)
     for _, v in ipairs(game:GetDescendants()) do
         if v:IsA("Texture") or v:IsA("Decal") then
-            if action == "remove" then
+            if action == "No Textures" then
                 v.Texture = ""  -- Removes the texture
             elseif action == "blur" then
                 v.Texture = "rbxassetid://blur_texture_id" -- Replace with blurred texture ID
@@ -130,6 +130,28 @@ for _, v in ipairs(game:GetDescendants()) do
     if v:IsA("Texture") or v:IsA("Decal") then
         v:SetAttribute("OriginalTexture", v.Texture) -- Store the original texture
     end
+end
+
+local function applyCustomFont()
+    local fontPath = "rbxassetid://pixeled" -- Replace with the correct asset ID for the font file
+    local players = game:GetService("Players")
+    local function setCustomFont(uiElement)
+        if uiElement:IsA("TextLabel") or uiElement:IsA("TextButton") or uiElement:IsA("TextBox") then
+            uiElement.Font = fontPath
+        end
+    end
+
+    for _, player in ipairs(players:GetPlayers()) do
+        for _, element in ipairs(player.PlayerGui:GetDescendants()) do
+            setCustomFont(element)
+        end
+    end
+
+    players.PlayerAdded:Connect(function(player)
+        player.PlayerGui.DescendantAdded:Connect(function(element)
+            setCustomFont(element)
+        end)
+    end)
 end
 
 -- Load saved settings
@@ -184,9 +206,39 @@ Tab:CreateButton({
 
 Tab:CreateDropdown({
     Name = "Texture Modification",
-    Options = {"remove", "blur", "reset"},
+    Options = {"No Textures", "blur", "reset"},
     Callback = function(selected)
         modifyTextures(selected)
+    end
+})
+
+-- Add the YouTube channel button
+Tab:CreateButton({
+    Name = "Visit My YouTube Channel",
+    Callback = function()
+        local success, err = pcall(function()
+            game:GetService("GuiService"):OpenBrowserWindow("https://www.youtube.com/@RontuYT")
+        end)
+
+        if not success then
+            Rayfield:Notify({
+                Title = "Error",
+                Content = "Failed to open the link. Please try again later.",
+                Duration = 3
+            })
+        end
+    end
+})
+
+Tab:CreateButton({
+    Name = "Apply Custom Font",
+    Callback = function()
+        applyCustomFont()
+        Rayfield:Notify({
+            Title = "Custom Font",
+            Content = "Custom font has been applied!",
+            Duration = 3
+        })
     end
 })
 
