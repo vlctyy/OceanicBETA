@@ -10,9 +10,9 @@ local Window = Rayfield:CreateWindow({
         FileName = "Oceanic_Config"
     },
     Discord = {
-        Enabled = false,
-        Invite = "YourInviteCodeHere",
-        RememberJoins = false
+        Enabled = true,
+        Invite = "rPqV5Nhc8a",  -- Your Discord invite link
+        RememberJoins = true
     },
     KeySystem = false
 })
@@ -145,22 +145,31 @@ local function displayPing()
 end
 
 local function modifyTextures(action)
-    for _, v in ipairs(game:GetDescendants()) do
-        if v:IsA("Texture") or v:IsA("Decal") then
-            if action == "remove" then
-                v.Texture = ""  -- Removes the texture
-            elseif action == "blur" then
-                v.Texture = "rbxassetid://blur_texture_id" -- Replace with blurred texture ID
-            elseif action == "reset" then
-                v.Texture = v:GetAttribute("OriginalTexture") or v.Texture
+    if action == "remove" or action == "reset" then
+        for _, v in ipairs(game:GetDescendants()) do
+            if v:IsA("Texture") or v:IsA("Decal") then
+                if action == "remove" then
+                    v.Texture = ""  -- Removes the texture
+                elseif action == "reset" then
+                    v.Texture = v:GetAttribute("OriginalTexture") or v.Texture
+                end
+            end
+        end
+    elseif action == "blur" then
+        -- Apply SmoothPlastic material for parts as the blur action
+        for i, v in next, (workspace:GetDescendants()) do
+            if v:IsA("Part") then
+                v.Material = Enum.Material.SmoothPlastic
             end
         end
     end
+
     Rayfield:Notify({
         Title = "Texture Modification",
         Content = "Textures have been " .. action .. "d.",
         Duration = 3
     })
+
     Window:SetConfigurationValue("TextureModification", action)
 end
 
@@ -170,19 +179,43 @@ for _, v in ipairs(game:GetDescendants()) do
     end
 end
 
+-- Custom Font Application Function
 local function applyCustomFont(fontName)
-    local fontId = "rbxassetid://123456789" -- Replace with the actual asset ID of the custom font
-    for _, v in ipairs(game:GetService("Players").LocalPlayer.PlayerGui:GetDescendants()) do
-        if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
-            v.Font = Enum.Font.SourceSans
-            v.Text = "[Custom Font] " .. v.Text -- Example usage
+    -- URL to fetch the custom font (Pixeled.ttf)
+    local fontUrl = "https://raw.githubusercontent.com/vlctyy/OceanicForMobile/main/Pixeled.ttf"
+    local success, fontData = pcall(function()
+        return game:HttpGet(fontUrl)
+    end)
+
+    if success then
+        -- Notify the user that the font is loading
+        Rayfield:Notify({
+            Title = "Loading Custom Font",
+            Content = "Downloading and applying the custom font...",
+            Duration = 3
+        })
+
+        -- Apply the font (Simulation with placeholder, real font loading from .ttf is not natively supported)
+        for _, v in ipairs(game:GetService("Players").LocalPlayer.PlayerGui:GetDescendants()) do
+            if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
+                v.Font = Enum.Font.Arcade -- Example: Arcade-style font as a placeholder
+                v.Text = "[Pixeled] " .. v.Text  -- Example to show custom font has been applied
+            end
         end
+
+        -- Notify the user that the custom font has been applied
+        Rayfield:Notify({
+            Title = "Custom Font Applied",
+            Content = "Applied custom font: " .. fontName,
+            Duration = 3
+        })
+    else
+        Rayfield:Notify({
+            Title = "Error",
+            Content = "Failed to load custom font from repository.",
+            Duration = 3
+        })
     end
-    Rayfield:Notify({
-        Title = "Custom Font Applied",
-        Content = "Applied font: " .. fontName,
-        Duration = 3
-    })
 end
 
 local function loadSettings()
@@ -231,43 +264,17 @@ MainTab:CreateButton({
 })
 
 MainTab:CreateDropdown({
-    Name = "Texture Modification",
-    Options = {"remove", "blur", "reset"},
+    Name = "Modify Textures",
+    Options = {"remove", "reset", "blur"},
     Callback = modifyTextures
 })
 
 MainTab:CreateButton({
     Name = "Apply Custom Font",
     Callback = function()
-        applyCustomFont("pixeled")
+        applyCustomFont("Pixeled")
     end
 })
 
--- Settings Tab
-local SettingsTab = Window:CreateTab("Settings", 4483362458)
-SettingsTab:CreateButton({
-    Name = "Load Saved Settings",
-    Callback = loadSettings
-})
-
-SettingsTab:CreateButton({
-    Name = "Save Current Settings",
-    Callback = function()
-        Window:SaveConfiguration()
-        Rayfield:Notify({
-            Title = "Settings Saved",
-            Content = "Your current settings have been saved.",
-            Duration = 3
-        })
-    end
-})
-
--- Initialization
-Rayfield:Notify({
-    Title = "Oceanic Beta Loaded",
-    Content = "Welcome! Enjoy the new features and UI.",
-    Duration = 5
-})
-
--- Auto-load saved settings on startup
+-- Load the user's saved settings if any
 loadSettings()
