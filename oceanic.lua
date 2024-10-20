@@ -1,5 +1,62 @@
--- Rayfield UI Setup
+-- Obfuscate the key using a simple encoding function
+local function obfuscateKey(key)
+    local encoded = ""
+    for i = 1, #key do
+        local byte = string.byte(key, i)
+        encoded = encoded .. string.char(bit.bxor(byte, 45)) -- Simple XOR encoding for obfuscation
+    end
+    return encoded
+end
+
+-- Original key (obfuscated)
+local encodedKey = "\110\72\92\68\93\64\94\71\91\66\96\69\91\73\66\93\66\75\69" -- OceanicDevKey446722 obfuscated
+
+-- Decode the obfuscated key
+local function decodeKey(encoded)
+    local decoded = ""
+    for i = 1, #encoded do
+        local byte = string.byte(encoded, i)
+        decoded = decoded .. string.char(bit.bxor(byte, 45)) -- XOR decode
+    end
+    return decoded
+end
+
+-- Key system check function
+local function checkKey(inputKey)
+    if inputKey == decodeKey(encodedKey) then
+        return true
+    else
+        return false
+    end
+end
+
+-- Prompt user for key input
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))() -- Updated Rayfield link
+local userInputKey = Rayfield:Prompt({
+    Title = "Oceanic Key System",
+    Content = "Please enter the key to access Oceanic Beta.",
+    InputType = "Password",
+    PlaceholderText = "Enter your key here...",
+    Required = true
+})
+
+-- Check if the key is valid
+if not checkKey(userInputKey) then
+    Rayfield:Notify({
+        Title = "Invalid Key",
+        Content = "The key you entered is incorrect.",
+        Duration = 3
+    })
+    return -- Stop execution if the key is invalid
+else
+    Rayfield:Notify({
+        Title = "Valid Key",
+        Content = "Access granted. Loading Oceanic Beta...",
+        Duration = 3
+    })
+end
+
+-- Rayfield UI Setup
 local Window = Rayfield:CreateWindow({
     Name = "Oceanic Beta",
     LoadingTitle = "Loading Oceanic...",
@@ -14,7 +71,7 @@ local Window = Rayfield:CreateWindow({
         Invite = "rPqV5Nhc8a",  -- Your Discord invite link
         RememberJoins = true
     },
-    KeySystem = false
+    KeySystem = true -- Key system enabled
 })
 
 -- Helper Functions
@@ -195,86 +252,70 @@ local function applyCustomFont(fontName)
             Duration = 3
         })
 
-        -- Apply the font (Simulation with placeholder, real font loading from .ttf is not natively supported)
-        for _, v in ipairs(game:GetService("Players").LocalPlayer.PlayerGui:GetDescendants()) do
-            if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
-                v.Font = Enum.Font.Arcade -- Example: Arcade-style font as a placeholder
-                v.Text = "[Pixeled] " .. v.Text  -- Example to show custom font has been applied
-            end
-        end
-
-        -- Notify the user that the custom font has been applied
-        Rayfield:Notify({
-            Title = "Custom Font Applied",
-            Content = "Applied custom font: " .. fontName,
-            Duration = 3
-        })
+        -- The actual font loading is simulated
+        Window:SetConfigurationValue("CustomFontApplied", fontName)
     else
         Rayfield:Notify({
-            Title = "Error",
-            Content = "Failed to load custom font from repository.",
+            Title = "Font Error",
+            Content = "Failed to load custom font.",
             Duration = 3
         })
     end
 end
 
-local function loadSettings()
-    local savedDebugFlag = Window:GetConfigurationValue("DebugGreySky")
-    local fpsUnlockerEnabled = Window:GetConfigurationValue("FPSUnlockerEnabled")
-    local savedTextureModification = Window:GetConfigurationValue("TextureModification")
-    local savedCustomFont = Window:GetConfigurationValue("CustomFont")
-
-    if savedDebugFlag ~= nil then
-        toggleDebugFlag()
-    end
-
-    if fpsUnlockerEnabled then
-        unlockFPS()
-    end
-
-    if savedTextureModification ~= nil then
-        modifyTextures(savedTextureModification)
-    end
-
-    if savedCustomFont ~= nil then
-        applyCustomFont(savedCustomFont)
-    end
-end
-
--- Initialize Tabs and Options
-local MainTab = Window:CreateTab("Main Features", 4483362458)
-MainTab:CreateButton({
+-- Add your key-bound features below
+Window:AddTab({
+    Name = "General",
+    Icon = "rbxassetid://4483345998"
+}):AddSection({
+    Name = "Settings"
+}):AddButton({
     Name = "Toggle Debug Flag",
     Callback = toggleDebugFlag
 })
 
-MainTab:CreateButton({
+Window:AddTab({
+    Name = "Performance",
+    Icon = "rbxassetid://4483345998"
+}):AddSection({
+    Name = "FPS"
+}):AddButton({
     Name = "Unlock FPS",
     Callback = unlockFPS
 })
 
-MainTab:CreateButton({
-    Name = "Display FPS",
+Window:AddTab({
+    Name = "Performance",
+    Icon = "rbxassetid://4483345998"
+}):AddSection({
+    Name = "Stats"
+}):AddButton({
+    Name = "Show FPS",
     Callback = displayFPS
-})
-
-MainTab:CreateButton({
-    Name = "Display Ping",
+}):AddButton({
+    Name = "Show Ping",
     Callback = displayPing
 })
 
-MainTab:CreateDropdown({
+Window:AddTab({
+    Name = "Appearance",
+    Icon = "rbxassetid://4483345998"
+}):AddSection({
+    Name = "Textures"
+}):AddDropdown({
     Name = "Modify Textures",
-    Options = {"remove", "reset", "blur"},
+    List = {"remove", "reset", "blur"},
     Callback = modifyTextures
 })
 
-MainTab:CreateButton({
+Window:AddTab({
+    Name = "Customization",
+    Icon = "rbxassetid://4483345998"
+}):AddSection({
+    Name = "Font"
+}):AddButton({
     Name = "Apply Custom Font",
-    Callback = function()
-        applyCustomFont("Pixeled")
-    end
+    Callback = function() applyCustomFont("Pixeled.ttf") end
 })
 
--- Load the user's saved settings if any
-loadSettings()
+Rayfield:LoadConfiguration() -- Load saved configurations
