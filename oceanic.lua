@@ -54,94 +54,66 @@ local function unlockFPS()
     Window:SetConfigurationValue("FPSUnlockerEnabled", true)
 end
 
-local function createDraggableViewer(name, initialText)
-    local viewer = Instance.new("TextLabel")
-    viewer.Size = UDim2.new(0, 100, 0, 50)
-    viewer.Position = UDim2.new(0.5, 0, 0.1, 0)
-    viewer.Text = initialText
-    viewer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    viewer.TextColor3 = Color3.fromRGB(255, 255, 255)
-    viewer.TextSize = 14
-    viewer.BorderSizePixel = 2
-    viewer.BorderColor3 = Color3.fromRGB(0, 170, 255)
-    viewer.Parent = game.Players.LocalPlayer.PlayerGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FPSPingGui"
+screenGui.Parent = game:GetService("CoreGui")
 
-    local dragging, dragInput, dragStart, startPos
+local fpsLabel = Instance.new("TextLabel")
+fpsLabel.Name = "FPSLabel"
+fpsLabel.Size = UDim2.new(0, 200, 0, 60)  -- Increased size to 200x60
+fpsLabel.Position = UDim2.new(0, -10, 0, 10)
+fpsLabel.BackgroundTransparency = 1
+fpsLabel.TextColor3 = Color3.new(1, 1, 1)
+fpsLabel.TextStrokeTransparency = 0
+fpsLabel.Font = Enum.Font.SourceSans
+fpsLabel.TextSize = 40  -- Increased text size to 40
+fpsLabel.Parent = screenGui
 
-    local function update(input)
-        local delta = input.Position - dragStart
-        viewer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+local pingLabel = Instance.new("TextLabel")
+pingLabel.Name = "PingLabel"
+pingLabel.Size = UDim2.new(0, 100, 0, 50)
+pingLabel.Position = UDim2.new(0, 165, 0, 15) -- Adjusted position to be next to the FPS counter
+pingLabel.BackgroundTransparency = 1
+pingLabel.TextColor3 = Color3.new(1, 1, 1)
+pingLabel.TextStrokeTransparency = 0
+pingLabel.Font = Enum.Font.SourceSans
+pingLabel.TextSize = 24
+pingLabel.Parent = screenGui
 
-    viewer.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = viewer.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    viewer.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
-    end)
-
-    return viewer
-end
-
-local function displayFPS()
-    local fpsViewer = createDraggableViewer("FPS Viewer", "FPS: Calculating...")
-    local RunService = game:GetService("RunService")
-    local lastFrameTime = tick()
-    local frameCount = 0
-
-    RunService.RenderStepped:Connect(function()
-        frameCount = frameCount + 1
+local function calculateFPS()
+    local lastTime = tick()
+    local frames = 0
+    game:GetService("RunService").RenderStepped:Connect(function()
+        frames = frames + 1
         local currentTime = tick()
-        if currentTime - lastFrameTime >= 1 then
-            local fps = frameCount / (currentTime - lastFrameTime)
-            fpsViewer.Text = "FPS: " .. math.floor(fps)
-            frameCount = 0
-            lastFrameTime = currentTime
+        if currentTime - lastTime >= 0.1 then
+            local fps = math.floor(frames / (currentTime - lastTime))
+            fpsLabel.Text = "FPS: " .. tostring(fps)
+            if fps < 10 then
+                fpsLabel.TextColor3 = Color3.new(1, 0, 0) -- Red color for low FPS
+            else
+                fpsLabel.TextColor3 = Color3.new(1, 1, 1) -- White color for normal FPS
+            end
+            frames = 0
+            lastTime = currentTime
         end
     end)
 end
 
-local function displayPing()
-    local pingViewer = createDraggableViewer("Ping Viewer", "Ping: Calculating...")
-    local Stats = game:GetService("Stats")
-    local NetworkStats = Stats:FindFirstChild("Network")
-
-    if not NetworkStats then
-        Rayfield:Notify({
-            Title = "Error",
-            Content = "Network stats not found.",
-            Duration = 3
-        })
-        return
-    end
-
-    local IncomingReplicationLag = NetworkStats:FindFirstChild("IncomingReplicationLag")
-    if IncomingReplicationLag then
-        IncomingReplicationLag:GetPropertyChangedSignal("Value"):Connect(function()
-            local ping = math.floor(IncomingReplicationLag.Value * 1000)
-            pingViewer.Text = "Ping: " .. tostring(ping) .. " ms"
-        end)
-    end
+local function calculatePing()
+    game:GetService("RunService").Heartbeat:Connect(function()
+        local ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+        pingLabel.Text = "Ping: " .. tostring(math.floor(ping)) .. " ms"
+        if ping > 300 then
+            pingLabel.TextColor3 = Color3.new(1, 0, 0) -- Red color for high ping
+        else
+            pingLabel.TextColor3 = Color3.new(1, 1, 1) -- White color for normal ping
+        end
+    end)
 end
+
+calculateFPS()
+calculatePing()
 
 local function modifyTextures(action)
     for _, v in ipairs(workspace:GetDescendants()) do
@@ -227,13 +199,11 @@ ClientModsTab:CreateButton({
 })
 
 ClientModsTab:CreateButton({
-    Name = "Display FPS",
-    Callback = displayFPS
-})
-
-ClientModsTab:CreateButton({
-    Name = "Display Ping",
-    Callback = displayPing
+    Name = "Display FPS and Ping",
+    Callback = function()
+        calculateFPS()
+        calculatePing()
+    end
 })
 
 ClientModsTab:CreateDropdown({
